@@ -1,0 +1,81 @@
+---
+title: "Group Project"
+date: "4/15/2021"
+
+output:
+  pdf_document:
+    number_sections: no
+  html_notebook:
+    number_sections: no
+  html_document:
+    number_sections: no
+  word_document: default
+
+---
+
+```{r setup, include=FALSE}
+library("haven")    
+library("AER")   
+library("fastDummies")
+library("plm")
+df <- read.csv("table1.csv")
+head(df)
+
+#generate dummies
+df$dummy8090 <- ifelse(df$Year < 1990, 1, 0)
+df$dummy9000 <- ifelse(df$Year >= 1990 & df$Year < 2000, 1, 0)
+df$dummy0010 <- ifelse(df$Year >= 2000 & df$Year < 2010, 1, 0)
+df$dummy1018 <- ifelse(df$Year >= 2010 , 1, 0)
+
+df <- dummy_cols(df, select_columns = "State")
+
+# try to involve state dummies 
+cols <- 9:59
+nval <- 0:50
+df$stateid <- t(sweep(df[, cols], 2, nval, "*"))[t(df[, cols]) != 0]
+df$stateid
+
+```
+
+# Introduction
+
+This project aims to analyze how changes in state minimum wages affect changes in the state unemployment level, and we have built three model to explore this relationship. In the first basic model, we simply regress state’s unemployment rate on effective minimum wage in 2020 dollars. In the second model, based on the first basic model, we consider year fixed effect and state fixed effect, and we also introduce three dummy variables for 1980-1990, 1990-2000, and 2000-2010 to check whether or not the results change across the three different periods. In the third model, we build a panel regression model in order to include state fixed effect and time fixed effect. Our analysis indicates that state minimum wages have a positive relationship with state unemployment rate.
+
+# Result
+## Model 1: baseline model
+```{r, echo = T, warning= F}
+# model1:
+fm0 <- lm(unemployment_rate ~ Effective.Minimum.Wage.2020.Dollars , data = df)
+summary(fm0)
+coeftest(fm0, df = Inf, vcov = vcovHC(fm0, type = "HC1"))
+```
+
+## Model2:
+baseline model + year fixed effect + year $\cdot$ effective + state fixed effect + state $\cdot$ effective
+```{r, echo = T, warning= F}
+
+fm1 <- lm(unemployment_rate ~ Effective.Minimum.Wage.2020.Dollars+stateid + dummy8090 + dummy9000 + dummy0010 +Effective.Minimum.Wage.2020.Dollars*dummy8090+Effective.Minimum.Wage.2020.Dollars*dummy9000+Effective.Minimum.Wage.2020.Dollars*dummy0010 +Effective.Minimum.Wage.2020.Dollars*stateid, data = df)
+summary(fm1)
+coeftest(fm1, df = Inf, vcov = vcovHC(fm1, type = "HC1"))
+```
+
+
+
+## Model 3:
+baseline model + year fixed effect (treat individual year instead of grouping the year into three) + state fixed effect
+```{r, echo = T, warning= F}
+
+fm2 <- plm(unemployment_rate ~ Effective.Minimum.Wage.2020.Dollars, 
+    data = df,
+    index = c("State", "Year"), 
+    model = "within")
+summary(fm2)
+coeftest(fm2, df = Inf, vcov = vcovHC(fm2, type = "HC1"))
+
+```
+
+
+
+### Result figure
+
+![Plot the result ](plot_zoom.png){width =7,height = 5}
