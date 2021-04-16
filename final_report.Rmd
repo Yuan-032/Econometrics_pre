@@ -18,9 +18,10 @@ library("haven")
 library("AER")   
 library("fastDummies")
 library("plm")
+library("tidyverse")
 df <- read.csv("table1.csv")
 head(df)
-
+df_poverty <- read.csv("data.csv") #data for 2008 poverty rate
 #generate dummies
 df$dummy8090 <- ifelse(df$Year < 1990, 1, 0)
 df$dummy9000 <- ifelse(df$Year >= 1990 & df$Year < 2000, 1, 0)
@@ -40,6 +41,10 @@ df$stateid
 # Introduction
 
 This project aims to analyze how changes in state minimum wages affect changes in the state unemployment level, and we have built three model to explore this relationship. In the first basic model, we simply regress state’s unemployment rate on effective minimum wage in 2020 dollars. In the second model, based on the first basic model, we consider year fixed effect and state fixed effect, and we also introduce three dummy variables for 1980-1990, 1990-2000, and 2000-2010 to check whether or not the results change across the three different periods. In the third model, we build a panel regression model in order to include state fixed effect and time fixed effect. Our analysis indicates that state minimum wages have a positive relationship with state unemployment rate.
+
+# Data
+
+[link]:https://stackoverflow.com/questions/29787850/how-do-i-add-a-url-to-r-markdown
 
 # Result
 ## Model 1: baseline model
@@ -73,7 +78,14 @@ summary(fm2)
 coeftest(fm2, df = Inf, vcov = vcovHC(fm2, type = "HC1"))
 
 ```
-
+## Model 4:
+```{r, echo = T, warning= F}
+# model4:
+df_model4 <- df %>% filter(Year == 2008, State != "District of Columbia")
+fm4 <- lm(df_model4$unemployment_rate ~ df_model4$Effective.Minimum.Wage.2020.Dollars + df_poverty$Percent.Above.Poverty.Rate)
+summary(fm4)
+coeftest(fm4, df = Inf, vcov = vcovHC(fm4, type = "HC1"))
+ ```
 
 
 ### Result figure
